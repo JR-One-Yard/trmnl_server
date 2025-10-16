@@ -1,0 +1,62 @@
+import { type NextRequest, NextResponse } from "next/server"
+import { getSupabaseServerClient } from "@/lib/supabase/server"
+import type { SetupRequest } from "@/lib/types"
+
+export async function POST(request: NextRequest) {
+  try {
+    const deviceId = request.headers.get("ID")
+
+    if (!deviceId) {
+      return NextResponse.json({ error: "Device ID is required in headers" }, { status: 400 })
+    }
+
+    const body: SetupRequest = await request.json().catch(() => ({}))
+    const supabase = await getSupabaseServerClient()
+
+    // Check if device exists
+    const { data: existingDevice } = await supabase.from("devices").select("*").eq("device_id", deviceId).single()
+
+    if (existingDevice) {
+      // Update existing device
+      const { data, error } = await supabase
+        .from("devices")
+        .update({
+          firmware_version: body.firmware_version,
+          last_seen_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("device_id", deviceId)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      return NextResponse.json({
+        status: "updated",
+        device: data,
+      })
+    } else {
+      // Create new device
+      const { data, error } = await supabase
+        .from("devices")
+        .insert({
+          device_id: deviceId,
+          name: `Device ${deviceId.slice(0, 8)}`,
+          firmware_version: body.firmware_version,
+          last_seen_at: new Date().toISOString(),
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      return NextResponse.json({
+        status: "created",
+        device: data,
+      })
+    }
+  } catch (error) {
+    console.error("[v0] Setup error:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
