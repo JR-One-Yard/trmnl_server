@@ -1,99 +1,79 @@
 import type { CalEvent } from "./types"
 
-const W = 800,
-  H = 480,
-  PAD = 20,
-  HEADER = 36,
-  DAY_GAP = 4
-
-function esc(s: string) {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[c]!)
-}
-
-function fmtHM(d: Date) {
-  // 24h local display HH:mm
-  const hh = d.getHours().toString().padStart(2, "0")
-  const mm = d.getMinutes().toString().padStart(2, "0")
-  return `${hh}:${mm}`
-}
-
-function fmtHeader(start: Date, end: Date) {
-  return `${start.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" })} – ${end.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" })}`
-}
-
-export function renderWeekSvg({
-  events,
-  startOfWeek,
-  endOfWeek,
-}: {
+interface RenderWeekProps {
   events: CalEvent[]
   startOfWeek: Date
   endOfWeek: Date
-}) {
-  // group per day
-  const days: { label: string; evts: CalEvent[] }[] = []
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(startOfWeek)
-    d.setDate(d.getDate() + i)
-    const label = d.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" })
-    const dayStart = new Date(d)
-    dayStart.setHours(0, 0, 0, 0)
-    const dayEnd = new Date(d)
-    dayEnd.setHours(23, 59, 59, 999)
-    const evts = events
-      .filter((e) => e.start <= dayEnd && e.end >= dayStart)
-      .sort((a, b) => a.start.getTime() - b.start.getTime())
-    days.push({ label, evts })
+}
+
+export function renderWeekSvg({ events, startOfWeek, endOfWeek }: RenderWeekProps): string {
+  const width = 800
+  const height = 480
+  const padding = 20
+  const headerHeight = 60
+  const dayWidth = (width - 2 * padding) / 7
+
+  // Format dates for display
+  const formatDate = (date: Date) => {
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    return `${days[date.getDay()]} ${date.getDate()}`
   }
 
-  const bodyY = PAD + HEADER + 8
-  const dayBlockH = Math.floor((H - bodyY - PAD - DAY_GAP * 6) / 7)
-  const headerTitle = fmtHeader(startOfWeek, endOfWeek)
+  // Get week days
+  const weekDays: Date[] = []
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(startOfWeek)
+    day.setDate(startOfWeek.getDate() + i)
+    weekDays.push(day)
+  }
 
-  let svg = `
-  <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-    <style>
-      .h1 { font: 600 24px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto; fill: #000; }
-      .day{ font: 600 16px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto; fill: #000; }
-      .evt{ font: 400 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto; fill: #000; }
-      .muted{ fill: #000; opacity:.6 }
-      .line{ stroke:#000; stroke-width:1; opacity:.15 }
-    </style>
-
-    <text x="${PAD}" y="${PAD + 24}" class="h1">${esc(headerTitle)}</text>
-    <line x1="${PAD}" y1="${PAD + HEADER}" x2="${W - PAD}" y2="${PAD + HEADER}" class="line"/>
-  `
-
-  days.forEach((d, idx) => {
-    const y = bodyY + idx * (dayBlockH + DAY_GAP)
-    svg += `<g transform="translate(${PAD},${y})">
-      <text x="0" y="16" class="day">${esc(d.label)}</text>
-      <line x1="0" y1="${dayBlockH}" x2="${W - 2 * PAD}" y2="${dayBlockH}" class="line"/>`
-
-    let row = 36
-    const maxRows = Math.floor((dayBlockH - 10) / 18)
-
-    if (d.evts.length === 0) {
-      svg += `<text x="0" y="${row}" class="evt muted">No events</text>`
-    } else {
-      let used = 0
-      for (const e of d.evts) {
-        const when = e.allDay ? "All-day" : `${fmtHM(e.start)}–${fmtHM(e.end)}`
-        const line = `${when}  ${esc(e.title || "(untitled)")}`
-        svg += `<text x="0" y="${row}" class="evt">${line}</text>`
-        row += 18
-        used++
-        if (e.location && used < maxRows) {
-          svg += `<text x="0" y="${row}" class="evt muted">${esc(e.location)}</text>`
-          row += 16
-          used++
-        }
-        if (used >= maxRows) {
-          break
-        }
-      }
+  // Group events by day
+  const eventsByDay: CalEvent[][] = weekDays.map(() => [])
+  events.forEach((event) => {
+    const eventDay = event.start.getDate()
+    const dayIndex = weekDays.findIndex((d) => d.getDate() === eventDay)
+    if (dayIndex >= 0) {
+      eventsByDay[dayIndex].push(event)
     }
-    svg += `</g>`
+  })
+
+  // Generate SVG
+  let svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">`
+  svg += `<rect width="${width}" height="${height}" fill="white"/>`
+
+  // Header
+  svg += `<text x="${width / 2}" y="30" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="black">Week Agenda</text>`
+  svg += `<line x1="${padding}" y1="${headerHeight}" x2="${width - padding}" y2="${headerHeight}" stroke="black" stroke-width="2"/>`
+
+  // Day columns
+  weekDays.forEach((day, i) => {
+    const x = padding + i * dayWidth
+    const y = headerHeight + 20
+
+    // Day header
+    svg += `<text x="${x + dayWidth / 2}" y="${y}" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="black">${formatDate(day)}</text>`
+
+    // Events for this day
+    const dayEvents = eventsByDay[i]
+    dayEvents.forEach((event, j) => {
+      const eventY = y + 20 + j * 40
+      const eventHeight = 35
+
+      // Event box
+      svg += `<rect x="${x + 5}" y="${eventY}" width="${dayWidth - 10}" height="${eventHeight}" fill="#f0f0f0" stroke="black" stroke-width="1" rx="3"/>`
+
+      // Event title
+      const title = event.title.length > 12 ? event.title.substring(0, 12) + "..." : event.title
+      svg += `<text x="${x + dayWidth / 2}" y="${eventY + 15}" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="black">${title}</text>`
+
+      // Event time (if not all-day)
+      if (!event.allDay) {
+        const timeStr = `${event.start.getHours()}:${event.start.getMinutes().toString().padStart(2, "0")}`
+        svg += `<text x="${x + dayWidth / 2}" y="${eventY + 28}" font-family="Arial, sans-serif" font-size="8" text-anchor="middle" fill="#666">${timeStr}</text>`
+      } else {
+        svg += `<text x="${x + dayWidth / 2}" y="${eventY + 28}" font-family="Arial, sans-serif" font-size="8" text-anchor="middle" fill="#666">All Day</text>`
+      }
+    })
   })
 
   svg += `</svg>`
