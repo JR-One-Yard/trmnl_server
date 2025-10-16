@@ -71,9 +71,16 @@ export async function GET(request: NextRequest) {
 
     console.log("[v0] Active screen found:", screen.name)
 
+    let imageUrl: string
+    if (screen.screen_type === "calendar-week") {
+      imageUrl = `${baseUrl}/api/render-week`
+    } else {
+      imageUrl = `${baseUrl}/api/render?device_id=${deviceId}&screen_id=${screen.id}`
+    }
+
     // Return screen configuration
     const response: DisplayResponse = {
-      image_url: `${baseUrl}/api/render?device_id=${deviceId}&screen_id=${screen.id}`,
+      image_url: imageUrl,
       refresh_rate: screen.config.refresh_rate || 300,
       merge_variables: screen.config.merge_variables || {},
     }
