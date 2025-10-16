@@ -24,6 +24,9 @@ export default async function DashboardPage() {
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" asChild>
+                <Link href="/logs">System Logs</Link>
+              </Button>
+              <Button variant="outline" asChild>
                 <Link href="/setup-guide">Setup Guide</Link>
               </Button>
               <Button variant="outline" asChild>
