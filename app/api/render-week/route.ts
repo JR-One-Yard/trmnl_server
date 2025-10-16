@@ -33,6 +33,10 @@ export async function GET(req: NextRequest) {
       const events = await getWeekEvents(startOfWeek, endOfWeek)
       const svg = renderWeekSvg({ events, startOfWeek, endOfWeek })
 
+      console.log("[v0] render-week: SVG generated, length:", svg.length)
+      console.log("[v0] render-week: SVG start (first 200 chars):", svg.substring(0, 200))
+      console.log("[v0] render-week: SVG chars 100-150:", svg.substring(100, 150))
+
       return new Response(svg, {
         status: 200,
         headers: {
@@ -63,6 +67,8 @@ export async function GET(req: NextRequest) {
 
     const svg = renderWeekSvg({ events, startOfWeek, endOfWeek })
     console.log("[v0] render-week: SVG generated, length:", svg.length)
+    console.log("[v0] render-week: SVG start (first 200 chars):", svg.substring(0, 200))
+    console.log("[v0] render-week: SVG chars 100-150:", svg.substring(100, 150))
 
     let finalPng
     try {
