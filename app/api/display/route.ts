@@ -4,9 +4,13 @@ import type { DisplayResponse } from "@/lib/types"
 
 export async function GET(request: NextRequest) {
   try {
-    const deviceId = request.headers.get("ID")
+    console.log("[v0] Display GET request received")
+    console.log("[v0] Headers:", Object.fromEntries(request.headers.entries()))
+
+    const deviceId = request.headers.get("ID") || request.headers.get("id")
 
     if (!deviceId) {
+      console.error("[v0] Display error: Missing device ID in headers")
       return NextResponse.json({ error: "Device ID is required in headers" }, { status: 400 })
     }
 
@@ -16,8 +20,11 @@ export async function GET(request: NextRequest) {
     const { data: device } = await supabase.from("devices").select("*").eq("device_id", deviceId).single()
 
     if (!device) {
+      console.error("[v0] Display error: Device not found:", deviceId)
       return NextResponse.json({ error: "Device not found" }, { status: 404 })
     }
+
+    console.log("[v0] Device found:", device.name)
 
     // Update last seen
     await supabase.from("devices").update({ last_seen_at: new Date().toISOString() }).eq("device_id", deviceId)
@@ -32,18 +39,23 @@ export async function GET(request: NextRequest) {
       .limit(1)
       .single()
 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${request.headers.get("host")}`
+
     if (!screen) {
+      console.log("[v0] No active screen found, returning default")
       // Return default screen
       const response: DisplayResponse = {
-        image_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/render?device_id=${deviceId}&type=default`,
+        image_url: `${baseUrl}/api/render?device_id=${deviceId}&type=default`,
         refresh_rate: 300,
       }
       return NextResponse.json(response)
     }
 
+    console.log("[v0] Active screen found:", screen.name)
+
     // Return screen configuration
     const response: DisplayResponse = {
-      image_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/render?device_id=${deviceId}&screen_id=${screen.id}`,
+      image_url: `${baseUrl}/api/render?device_id=${deviceId}&screen_id=${screen.id}`,
       refresh_rate: screen.config.refresh_rate || 300,
       merge_variables: screen.config.merge_variables || {},
     }

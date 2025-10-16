@@ -2,9 +2,23 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import type { SetupRequest } from "@/lib/types"
 
+export async function GET(request: NextRequest) {
+  console.log("[v0] Setup GET request received")
+  console.log("[v0] Headers:", Object.fromEntries(request.headers.entries()))
+
+  // Return simple success response for device health check
+  return NextResponse.json({
+    status: "ok",
+    message: "TRMNL BYOS server is ready",
+  })
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const deviceId = request.headers.get("ID")
+    console.log("[v0] Setup POST request received")
+    console.log("[v0] Headers:", Object.fromEntries(request.headers.entries()))
+
+    const deviceId = request.headers.get("ID") || request.headers.get("id")
 
     if (!deviceId) {
       console.error("[v0] Setup error: Missing device ID in headers")
@@ -12,6 +26,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body: SetupRequest = await request.json().catch(() => ({}))
+    console.log("[v0] Setup request body:", body)
+
     const supabase = await getSupabaseServerClient()
 
     const deviceName = body.device_name || `Device ${deviceId.slice(0, 8)}`
