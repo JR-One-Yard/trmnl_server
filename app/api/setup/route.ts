@@ -7,11 +7,14 @@ export async function POST(request: NextRequest) {
     const deviceId = request.headers.get("ID")
 
     if (!deviceId) {
+      console.error("[v0] Setup error: Missing device ID in headers")
       return NextResponse.json({ error: "Device ID is required in headers" }, { status: 400 })
     }
 
     const body: SetupRequest = await request.json().catch(() => ({}))
     const supabase = await getSupabaseServerClient()
+
+    const deviceName = body.device_name || `Device ${deviceId.slice(0, 8)}`
 
     // Check if device exists
     const { data: existingDevice } = await supabase.from("devices").select("*").eq("device_id", deviceId).single()
@@ -29,8 +32,12 @@ export async function POST(request: NextRequest) {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error("[v0] Database error updating device:", error)
+        throw error
+      }
 
+      console.log("[v0] Device updated:", data)
       return NextResponse.json({
         status: "updated",
         device: data,
@@ -41,15 +48,19 @@ export async function POST(request: NextRequest) {
         .from("devices")
         .insert({
           device_id: deviceId,
-          name: `Device ${deviceId.slice(0, 8)}`,
+          name: deviceName,
           firmware_version: body.firmware_version,
           last_seen_at: new Date().toISOString(),
         })
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error("[v0] Database error creating device:", error)
+        throw error
+      }
 
+      console.log("[v0] Device created:", data)
       return NextResponse.json({
         status: "created",
         device: data,
