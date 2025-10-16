@@ -24,10 +24,16 @@ export async function GET(req: NextRequest) {
     // Check if client wants SVG (for browser testing) or BMP (for TRMNL device)
     const acceptHeader = req.headers.get("accept") || ""
     const userAgent = req.headers.get("user-agent") || ""
-    const isBrowser = userAgent.includes("Mozilla") || userAgent.includes("Chrome") || userAgent.includes("Safari")
+    const deviceId = req.headers.get("ID") || req.headers.get("id") || ""
     
-    // Return SVG for browsers (for testing)
-    if (isBrowser && !acceptHeader.includes("image/bmp")) {
+    // Log headers for debugging
+    console.log("[v0] render-week: Headers - User-Agent:", userAgent, "Accept:", acceptHeader, "ID:", deviceId)
+    
+    // Return SVG only for browsers that explicitly look like browsers
+    const isBrowser = userAgent.includes("Mozilla") || userAgent.includes("Chrome") || userAgent.includes("Safari") || userAgent.includes("Edge")
+    const wantsSvg = acceptHeader.includes("image/svg") || (isBrowser && !deviceId && !acceptHeader.includes("image/bmp"))
+    
+    if (wantsSvg) {
       console.log("[v0] render-week: Returning SVG for browser")
       return new Response(svg, {
         status: 200,
