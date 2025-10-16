@@ -9,7 +9,11 @@ function escapeXml(text: string): string {
     .replace(/'/g, "&apos;")
 }
 
-export function renderWeekSvg(events: CalendarEvent[]): string {
+export function renderWeekSvg({
+  events,
+  startOfWeek,
+  endOfWeek,
+}: { events: CalendarEvent[]; startOfWeek: Date; endOfWeek: Date }): string {
   const width = 800
   const height = 480
   const padding = 10
@@ -21,13 +25,8 @@ export function renderWeekSvg(events: CalendarEvent[]): string {
   svg += `<rect width="${width}" height="${height}" fill="white"/>`
 
   // Header
-  svg += `<text x="${width / 2}" y="30" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="black">Week Agenda</text>`
-  svg += `<line x1="${padding}" y1="${headerHeight}" x2="${width - padding}" y2="${headerHeight}" stroke="black" stroke-width="2"/>`
-
-  // Get week days
-  const today = new Date()
-  const startOfWeek = new Date(today)
-  startOfWeek.setDate(today.getDate() - today.getDay())
+  svg += `<text x="${width / 2}" y="30" fontFamily="Arial, sans-serif" fontSize="24" fontWeight="bold" textAnchor="middle" fill="black">Week Agenda</text>`
+  svg += `<line x1="${padding}" y1="${headerHeight}" x2="${width - padding}" y2="${headerHeight}" stroke="black" strokeWidth="2"/>`
 
   const weekDays = Array.from({ length: 7 }, (_, i) => {
     const day = new Date(startOfWeek)
@@ -46,7 +45,7 @@ export function renderWeekSvg(events: CalendarEvent[]): string {
       return `${days[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}`
     }
 
-    svg += `<text x="${x + dayWidth / 2}" y="${y}" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="black">${formatDate(day)}</text>`
+    svg += `<text x="${x + dayWidth / 2}" y="${y}" fontFamily="Arial, sans-serif" fontSize="14" fontWeight="bold" textAnchor="middle" fill="black">${formatDate(day)}</text>`
 
     // Draw events for this day
     const dayEvents = events
@@ -60,23 +59,23 @@ export function renderWeekSvg(events: CalendarEvent[]): string {
       const eventY = y + 20 + eventIndex * 40
       const eventHeight = 35
 
-      svg += `<rect x="${x + 5}" y="${eventY}" width="${dayWidth - 10}" height="${eventHeight}" fill="#f0f0f0" stroke="black" stroke-width="1" rx="3"/>`
+      svg += `<rect x="${x + 5}" y="${eventY}" width="${dayWidth - 10}" height="${eventHeight}" fill="#f0f0f0" stroke="black" strokeWidth="1" rx="3"/>`
 
       const title = event.summary.length > 15 ? event.summary.substring(0, 12) + "..." : event.summary
-      svg += `<text x="${x + dayWidth / 2}" y="${eventY + 15}" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="black">${escapeXml(title)}</text>`
+      svg += `<text x="${x + dayWidth / 2}" y="${eventY + 15}" fontFamily="Arial, sans-serif" fontSize="10" textAnchor="middle" fill="black">${escapeXml(title)}</text>`
 
       if (event.start && event.end) {
         const startTime = new Date(event.start).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
         const timeStr = `${startTime}`
-        svg += `<text x="${x + dayWidth / 2}" y="${eventY + 28}" font-family="Arial, sans-serif" font-size="8" text-anchor="middle" fill="#666">${timeStr}</text>`
+        svg += `<text x="${x + dayWidth / 2}" y="${eventY + 28}" fontFamily="Arial, sans-serif" fontSize="8" textAnchor="middle" fill="#666">${timeStr}</text>`
       } else {
-        svg += `<text x="${x + dayWidth / 2}" y="${eventY + 28}" font-family="Arial, sans-serif" font-size="8" text-anchor="middle" fill="#666">All Day</text>`
+        svg += `<text x="${x + dayWidth / 2}" y="${eventY + 28}" fontFamily="Arial, sans-serif" fontSize="8" textAnchor="middle" fill="#666">All Day</text>`
       }
     })
 
     // Draw column separator
     if (i < 6) {
-      svg += `<line x1="${x + dayWidth}" y1="${headerHeight}" x2="${x + dayWidth}" y2="${height - padding}" stroke="#ccc" stroke-width="1"/>`
+      svg += `<line x1="${x + dayWidth}" y1="${headerHeight}" x2="${x + dayWidth}" y2="${height - padding}" stroke="#ccc" strokeWidth="1"/>`
     }
   })
 
