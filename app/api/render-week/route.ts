@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
         value: 800,
       },
       font: {
-        loadSystemFonts: false,
+        loadSystemFonts: true, // Enable fonts for text rendering
       },
     })
 

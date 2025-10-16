@@ -72,14 +72,8 @@ export async function GET(request: NextRequest) {
 
     console.log("[v0] Active screen found:", screen.name, "Type:", screen.type)
 
-    let imageUrl: string
-    if (screen.type === "calendar-week") {
-      imageUrl = `${baseUrl}/api/render-week`
-      console.log("[v0] Using calendar-week render endpoint:", imageUrl)
-    } else {
-      imageUrl = `${baseUrl}/api/render?device_id=${deviceId}&screen_id=${screen.id}`
-      console.log("[v0] Using standard render endpoint:", imageUrl)
-    }
+    const imageUrl = `${baseUrl}/api/render?device_id=${deviceId}&screen_id=${screen.id}`
+    console.log("[v0] Using render endpoint:", imageUrl)
 
     // Return screen configuration
     const response: DisplayResponse = {
