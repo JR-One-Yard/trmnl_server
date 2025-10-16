@@ -25,8 +25,8 @@ export function renderWeekSvg({
   svg += `<rect width="${width}" height="${height}" fill="white"/>`
 
   // Header
-  svg += `<text x="${width / 2}" y="30" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="black">Week Agenda</text>`
-  svg += `<line x1="${padding}" y1="${headerHeight}" x2="${width - padding}" y2="${headerHeight}" stroke="black" stroke-width="2"/>`
+  svg += `<text x="${width / 2}" y="30" fontFamily="Arial, sans-serif" fontSize="24" fontWeight="bold" textAnchor="middle" fill="black">Week Agenda</text>`
+  svg += `<line x1="${padding}" y1="${headerHeight}" x2="${width - padding}" y2="${headerHeight}" stroke="black" strokeWidth="2"/>`
 
   const weekDays = Array.from({ length: 7 }, (_, i) => {
     const day = new Date(startOfWeek)
@@ -45,7 +45,7 @@ export function renderWeekSvg({
       return `${days[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}`
     }
 
-    svg += `<text x="${x + dayWidth / 2}" y="${y}" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="black">${formatDate(day)}</text>`
+    svg += `<text x="${x + dayWidth / 2}" y="${y}" fontFamily="Arial, sans-serif" fontSize="14" fontWeight="bold" textAnchor="middle" fill="black">${formatDate(day)}</text>`
 
     // Draw events for this day
     const dayEvents = events
@@ -53,29 +53,30 @@ export function renderWeekSvg({
         const eventDate = new Date(e.start)
         return eventDate.toDateString() === day.toDateString()
       })
-      .slice(0, 3) // Max 3 events per day
+      .slice(0, 3)
 
     dayEvents.forEach((event, eventIndex) => {
       const eventY = y + 20 + eventIndex * 40
       const eventHeight = 35
 
-      svg += `<rect x="${x + 5}" y="${eventY}" width="${dayWidth - 10}" height="${eventHeight}" fill="#f0f0f0" stroke="black" stroke-width="1" rx="3"/>`
+      svg += `<rect x="${x + 5}" y="${eventY}" width="${dayWidth - 10}" height="${eventHeight}" fill="#f0f0f0" stroke="black" strokeWidth="1" rx="3"/>`
 
-      const title = (event.summary || "Untitled Event").length > 15 ? (event.summary || "Untitled Event").substring(0, 12) + "..." : (event.summary || "Untitled Event")
-      svg += `<text x="${x + dayWidth / 2}" y="${eventY + 15}" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="black">${escapeXml(title)}</text>`
+      const summary = event.summary || "Untitled Event"
+      const title = summary.length > 15 ? summary.substring(0, 12) + "..." : summary
+      svg += `<text x="${x + dayWidth / 2}" y="${eventY + 15}" fontFamily="Arial, sans-serif" fontSize="10" textAnchor="middle" fill="black">${escapeXml(title)}</text>`
 
       if (event.start && event.end) {
         const startTime = new Date(event.start).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
         const timeStr = `${startTime}`
-        svg += `<text x="${x + dayWidth / 2}" y="${eventY + 28}" font-family="Arial, sans-serif" font-size="8" text-anchor="middle" fill="#666">${timeStr}</text>`
+        svg += `<text x="${x + dayWidth / 2}" y="${eventY + 28}" fontFamily="Arial, sans-serif" fontSize="8" textAnchor="middle" fill="#666">${timeStr}</text>`
       } else {
-        svg += `<text x="${x + dayWidth / 2}" y="${eventY + 28}" font-family="Arial, sans-serif" font-size="8" text-anchor="middle" fill="#666">All Day</text>`
+        svg += `<text x="${x + dayWidth / 2}" y="${eventY + 28}" fontFamily="Arial, sans-serif" fontSize="8" textAnchor="middle" fill="#666">All Day</text>`
       }
     })
 
     // Draw column separator
     if (i < 6) {
-      svg += `<line x1="${x + dayWidth}" y1="${headerHeight}" x2="${x + dayWidth}" y2="${height - padding}" stroke="#ccc" stroke-width="1"/>`
+      svg += `<line x1="${x + dayWidth}" y1="${headerHeight}" x2="${x + dayWidth}" y2="${height - padding}" stroke="#ccc" strokeWidth="1"/>`
     }
   })
 
