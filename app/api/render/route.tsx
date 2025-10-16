@@ -142,7 +142,6 @@ function generateScreenSVG(device: any, screen: any, type: string | null): strin
   const height = 480
 
   if (!screen || type === "default") {
-    // Default welcome screen
     return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
   <rect width="${width}" height="${height}" fill="#000000"/>
