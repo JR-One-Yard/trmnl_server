@@ -21,6 +21,8 @@ function isPreviewEnvironment(): boolean {
 
 export async function GET(req: NextRequest) {
   console.log("[v0] render-week: Starting generation")
+  console.log("[v0] render-week: Environment:", process.env.VERCEL_ENV || "development")
+  console.log("[v0] render-week: Headers:", Object.fromEntries(req.headers.entries()))
 
   try {
     if (isPreviewEnvironment()) {
@@ -41,27 +43,46 @@ export async function GET(req: NextRequest) {
     }
 
     console.log("[v0] render-week: Production mode - generating PNG")
-    const { Resvg } = await import("@resvg/resvg-js")
-    const sharp = (await import("sharp")).default
+    let Resvg, sharp
+    try {
+      const resvgModule = await import("@resvg/resvg-js")
+      Resvg = resvgModule.Resvg
+      sharp = (await import("sharp")).default
+      console.log("[v0] render-week: Native modules loaded successfully")
+    } catch (importError) {
+      console.error("[v0] render-week: Failed to load native modules:", importError)
+      throw new Error(`Failed to load native modules: ${importError}`)
+    }
 
     const now = new Date()
     const { startOfWeek, endOfWeek } = getWeekBoundsSydney(now)
+    console.log("[v0] render-week: Week bounds:", { startOfWeek, endOfWeek })
+
     const events = await getWeekEvents(startOfWeek, endOfWeek)
+    console.log("[v0] render-week: Fetched", events.length, "events")
+
     const svg = renderWeekSvg({ events, startOfWeek, endOfWeek })
+    console.log("[v0] render-week: SVG generated, length:", svg.length)
 
-    const r = new Resvg(svg, { fitTo: { mode: "width", value: 800 } })
-    const png = r.render().asPng()
+    let finalPng
+    try {
+      const r = new Resvg(svg, { fitTo: { mode: "width", value: 800 } })
+      const png = r.render().asPng()
+      console.log("[v0] render-week: SVG converted to PNG, size:", png.length)
 
-    const finalPng = await sharp(png)
-      .resize(800, 480, { fit: "cover" })
-      .grayscale()
-      .png({ compressionLevel: 9 })
-      .toBuffer()
+      finalPng = await sharp(png).resize(800, 480, { fit: "cover" }).grayscale().png({ compressionLevel: 9 }).toBuffer()
+
+      console.log("[v0] render-week: Final PNG processed, size:", finalPng.length)
+    } catch (conversionError) {
+      console.error("[v0] render-week: Image conversion failed:", conversionError)
+      throw new Error(`Image conversion failed: ${conversionError}`)
+    }
 
     const etag = await generateETag(finalPng)
     const ifNoneMatch = req.headers.get("if-none-match")
 
     if (etag && ifNoneMatch && ifNoneMatch === etag) {
+      console.log("[v0] render-week: ETag match, returning 304")
       return new Response(null, { status: 304, headers: { ETag: etag } })
     }
 
@@ -75,10 +96,12 @@ export async function GET(req: NextRequest) {
       headers.ETag = etag
     }
 
+    console.log("[v0] render-week: Returning PNG, size:", finalPng.length, "bytes")
     return new Response(finalPng, { status: 200, headers })
   } catch (error) {
     console.error("[v0] render-week: Error generating image", error)
-    return new Response(JSON.stringify({ error: "Failed to generate image" }), {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    return new Response(JSON.stringify({ error: "Failed to generate image", details: errorMessage }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     })

@@ -66,16 +66,19 @@ export async function GET(request: NextRequest) {
         image_url: `${baseUrl}/api/render?device_id=${deviceId}&type=default`,
         refresh_rate: 300,
       }
+      console.log("[v0] Sending response:", JSON.stringify(response))
       return NextResponse.json(response)
     }
 
-    console.log("[v0] Active screen found:", screen.name)
+    console.log("[v0] Active screen found:", screen.name, "Type:", screen.type)
 
     let imageUrl: string
     if (screen.type === "calendar-week") {
       imageUrl = `${baseUrl}/api/render-week`
+      console.log("[v0] Using calendar-week render endpoint:", imageUrl)
     } else {
       imageUrl = `${baseUrl}/api/render?device_id=${deviceId}&screen_id=${screen.id}`
+      console.log("[v0] Using standard render endpoint:", imageUrl)
     }
 
     // Return screen configuration
@@ -85,6 +88,7 @@ export async function GET(request: NextRequest) {
       merge_variables: screen.config.merge_variables || {},
     }
 
+    console.log("[v0] Sending response:", JSON.stringify(response))
     return NextResponse.json(response)
   } catch (error) {
     console.error("[v0] Display error:", error)
