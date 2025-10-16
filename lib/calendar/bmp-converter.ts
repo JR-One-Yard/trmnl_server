@@ -40,7 +40,7 @@ export async function convertToBMP(pngBuffer: Buffer): Promise<Buffer> {
   // DIB Header (BITMAPINFOHEADER - 40 bytes)
   bmpBuffer.writeUInt32LE(40, offset); offset += 4; // Header size
   bmpBuffer.writeInt32LE(width, offset); offset += 4; // Width
-  bmpBuffer.writeInt32LE(-height, offset); offset += 4; // Height (negative for top-down)
+  bmpBuffer.writeInt32LE(height, offset); offset += 4; // Height (positive for bottom-up)
   bmpBuffer.writeUInt16LE(1, offset); offset += 2; // Planes
   bmpBuffer.writeUInt16LE(1, offset); offset += 2; // Bits per pixel (1-bit)
   bmpBuffer.writeUInt32LE(0, offset); offset += 4; // Compression (none)
@@ -62,8 +62,8 @@ export async function convertToBMP(pngBuffer: Buffer): Promise<Buffer> {
   bmpBuffer.writeUInt8(255, offset++); // Red
   bmpBuffer.writeUInt8(0, offset++); // Reserved
 
-  // Pixel data (1-bit packed)
-  for (let y = 0; y < height; y++) {
+  // Pixel data (1-bit packed, bottom-up for positive height)
+  for (let y = height - 1; y >= 0; y--) {
     let byte = 0;
     let bitIndex = 0;
     
