@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     console.log("[v0] Active screen found:", screen.name)
 
     let imageUrl: string
-    if (screen.screen_type === "calendar-week") {
+    if (screen.type === "calendar-week") {
       imageUrl = `${baseUrl}/api/render-week`
     } else {
       imageUrl = `${baseUrl}/api/render?device_id=${deviceId}&screen_id=${screen.id}`

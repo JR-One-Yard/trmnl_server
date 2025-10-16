@@ -44,6 +44,9 @@ export function ScreenForm({ deviceId, screen }: ScreenFormProps) {
   const [customBgColor, setCustomBgColor] = useState(screen?.config?.backgroundColor || "#FFFFFF")
   const [customTextColor, setCustomTextColor] = useState(screen?.config?.textColor || "#000000")
 
+  // Calendar config
+  const [calendarRefreshRate, setCalendarRefreshRate] = useState(screen?.config?.refresh_rate || 300)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -72,6 +75,11 @@ export function ScreenForm({ deviceId, screen }: ScreenFormProps) {
             content: customContent,
             backgroundColor: customBgColor,
             textColor: customTextColor,
+          }
+          break
+        case "calendar-week":
+          config = {
+            refresh_rate: calendarRefreshRate,
           }
           break
       }
@@ -137,6 +145,7 @@ export function ScreenForm({ deviceId, screen }: ScreenFormProps) {
                 <SelectItem value="weather">Weather</SelectItem>
                 <SelectItem value="quote">Quote</SelectItem>
                 <SelectItem value="custom">Custom</SelectItem>
+                <SelectItem value="calendar-week">Calendar (Week View)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -294,6 +303,37 @@ export function ScreenForm({ deviceId, screen }: ScreenFormProps) {
                   />
                 </div>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {type === "calendar-week" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Calendar Settings</CardTitle>
+            <CardDescription>Configure your weekly calendar view</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="refreshRate">Refresh Rate (seconds)</Label>
+              <Input
+                id="refreshRate"
+                type="number"
+                value={calendarRefreshRate}
+                onChange={(e) => setCalendarRefreshRate(Number.parseInt(e.target.value))}
+                placeholder="300"
+                min="60"
+              />
+              <p className="text-sm text-muted-foreground">
+                How often the device should refresh the calendar (minimum 60 seconds)
+              </p>
+            </div>
+            <div className="rounded-lg bg-muted p-4">
+              <p className="text-sm text-muted-foreground">
+                <strong>Note:</strong> Currently displaying mock calendar data. To connect your Google Calendar, follow
+                the setup guide in CALENDAR_SETUP.md
+              </p>
             </div>
           </CardContent>
         </Card>
