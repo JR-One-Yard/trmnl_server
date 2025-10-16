@@ -6,6 +6,15 @@ interface RenderWeekProps {
   endOfWeek: Date
 }
 
+function escapeXml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;")
+}
+
 export function renderWeekSvg({ events, startOfWeek, endOfWeek }: RenderWeekProps): string {
   const width = 800
   const height = 480
@@ -42,8 +51,8 @@ export function renderWeekSvg({ events, startOfWeek, endOfWeek }: RenderWeekProp
   svg += `<rect width="${width}" height="${height}" fill="white"/>`
 
   // Header
-  svg += `<text x="${width / 2}" y="30" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="black">Week Agenda</text>`
-  svg += `<line x1="${padding}" y1="${headerHeight}" x2="${width - padding}" y2="${headerHeight}" stroke="black" stroke-width="2"/>`
+  svg += `<text x="${width / 2}" y="30" fontFamily="Arial, sans-serif" fontSize="24" fontWeight="bold" textAnchor="middle" fill="black">Week Agenda</text>`
+  svg += `<line x1="${padding}" y1="${headerHeight}" x2="${width - padding}" y2="${headerHeight}" stroke="black" strokeWidth="2"/>`
 
   // Day columns
   weekDays.forEach((day, i) => {
@@ -51,7 +60,7 @@ export function renderWeekSvg({ events, startOfWeek, endOfWeek }: RenderWeekProp
     const y = headerHeight + 20
 
     // Day header
-    svg += `<text x="${x + dayWidth / 2}" y="${y}" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="black">${formatDate(day)}</text>`
+    svg += `<text x="${x + dayWidth / 2}" y="${y}" fontFamily="Arial, sans-serif" fontSize="14" fontWeight="bold" textAnchor="middle" fill="black">${formatDate(day)}</text>`
 
     // Events for this day
     const dayEvents = eventsByDay[i]
@@ -60,18 +69,17 @@ export function renderWeekSvg({ events, startOfWeek, endOfWeek }: RenderWeekProp
       const eventHeight = 35
 
       // Event box
-      svg += `<rect x="${x + 5}" y="${eventY}" width="${dayWidth - 10}" height="${eventHeight}" fill="#f0f0f0" stroke="black" stroke-width="1" rx="3"/>`
+      svg += `<rect x="${x + 5}" y="${eventY}" width="${dayWidth - 10}" height="${eventHeight}" fill="#f0f0f0" stroke="black" strokeWidth="1" rx="3"/>`
 
-      // Event title
       const title = event.title.length > 12 ? event.title.substring(0, 12) + "..." : event.title
-      svg += `<text x="${x + dayWidth / 2}" y="${eventY + 15}" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="black">${title}</text>`
+      svg += `<text x="${x + dayWidth / 2}" y="${eventY + 15}" fontFamily="Arial, sans-serif" fontSize="10" textAnchor="middle" fill="black">${escapeXml(title)}</text>`
 
       // Event time (if not all-day)
       if (!event.allDay) {
         const timeStr = `${event.start.getHours()}:${event.start.getMinutes().toString().padStart(2, "0")}`
-        svg += `<text x="${x + dayWidth / 2}" y="${eventY + 28}" font-family="Arial, sans-serif" font-size="8" text-anchor="middle" fill="#666">${timeStr}</text>`
+        svg += `<text x="${x + dayWidth / 2}" y="${eventY + 28}" fontFamily="Arial, sans-serif" fontSize="8" textAnchor="middle" fill="#666">${timeStr}</text>`
       } else {
-        svg += `<text x="${x + dayWidth / 2}" y="${eventY + 28}" font-family="Arial, sans-serif" font-size="8" text-anchor="middle" fill="#666">All Day</text>`
+        svg += `<text x="${x + dayWidth / 2}" y="${eventY + 28}" fontFamily="Arial, sans-serif" fontSize="8" textAnchor="middle" fill="#666">All Day</text>`
       }
     })
   })
