@@ -5,13 +5,21 @@ import { convertToBMP } from "@/lib/calendar/bmp-converter"
 import { Resvg } from "@resvg/resvg-js"
 
 export async function GET(request: NextRequest) {
+  const requestId = Math.random().toString(36).substring(7)
+  console.log(`[v0] [${requestId}] Render request received`)
+  console.log(`[v0] [${requestId}] URL:`, request.url)
+  console.log(`[v0] [${requestId}] Headers:`, Object.fromEntries(request.headers.entries()))
+
   try {
     const searchParams = request.nextUrl.searchParams
     const deviceId = searchParams.get("device_id")
     const screenId = searchParams.get("screen_id")
     const type = searchParams.get("type")
 
+    console.log(`[v0] [${requestId}] Params - deviceId: ${deviceId}, screenId: ${screenId}, type: ${type}`)
+
     if (!deviceId) {
+      console.log(`[v0] [${requestId}] ERROR: Device ID missing`)
       return NextResponse.json({ error: "Device ID is required" }, { status: 400 })
     }
 
@@ -21,19 +29,26 @@ export async function GET(request: NextRequest) {
     const { data: device } = await supabase.from("devices").select("*").eq("device_id", deviceId).single()
 
     if (!device) {
+      console.log(`[v0] [${requestId}] ERROR: Device not found`)
       return NextResponse.json({ error: "Device not found" }, { status: 404 })
     }
+
+    console.log(`[v0] [${requestId}] Device found: ${device.name}`)
 
     let screenData = null
 
     if (screenId) {
       const { data } = await supabase.from("screens").select("*").eq("id", screenId).single()
       screenData = data
+      console.log(`[v0] [${requestId}] Screen found: ${screenData?.name}, type: ${screenData?.type}`)
     }
 
     if (screenData?.type === "calendar-week") {
+      console.log(`[v0] [${requestId}] Processing calendar-week screen`)
+
       const userAgent = request.headers.get("user-agent") || ""
       const isBrowser = userAgent.includes("Mozilla") || userAgent.includes("Chrome")
+      console.log(`[v0] [${requestId}] User-Agent: ${userAgent}, isBrowser: ${isBrowser}`)
 
       const now = new Date()
       const startOfWeek = new Date(now)
@@ -63,10 +78,13 @@ export async function GET(request: NextRequest) {
         },
       ]
 
+      console.log(`[v0] [${requestId}] Generating SVG with ${events.length} events`)
       const svg = renderWeekSvg({ events, startOfWeek, endOfWeek })
+      console.log(`[v0] [${requestId}] SVG generated, length: ${svg.length}`)
 
       // Return SVG for browsers, BMP for TRMNL devices
       if (isBrowser) {
+        console.log(`[v0] [${requestId}] Returning SVG for browser`)
         return new NextResponse(svg, {
           headers: {
             "Content-Type": "image/svg+xml",
@@ -76,13 +94,21 @@ export async function GET(request: NextRequest) {
       }
 
       // Convert to BMP for TRMNL device
+      console.log(`[v0] [${requestId}] Converting to BMP for TRMNL device`)
       const resvg = new Resvg(svg, {
         fitTo: { mode: "width", value: 800 },
         font: { loadSystemFonts: true },
       })
+      console.log(`[v0] [${requestId}] Resvg initialized`)
+
       const pngData = resvg.render()
+      console.log(`[v0] [${requestId}] PNG rendered`)
+
       const png = pngData.asPng()
+      console.log(`[v0] [${requestId}] PNG buffer created, size: ${png.length}`)
+
       const bmp = convertToBMP(png)
+      console.log(`[v0] [${requestId}] BMP converted, size: ${bmp.length}`)
 
       return new NextResponse(bmp, {
         headers: {
@@ -92,6 +118,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    console.log(`[v0] [${requestId}] Generating standard screen SVG`)
     // Generate SVG image based on screen type
     const svg = generateScreenSVG(device, screenData, type)
 
@@ -102,8 +129,11 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error("[v0] Render error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error(`[v0] Render error:`, error)
+    return NextResponse.json(
+      { error: "Internal server error", details: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    )
   }
 }
 
