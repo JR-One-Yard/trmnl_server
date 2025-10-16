@@ -17,11 +17,29 @@ export async function GET(request: NextRequest) {
     const supabase = await getSupabaseServerClient()
 
     // Get device
-    const { data: device } = await supabase.from("devices").select("*").eq("device_id", deviceId).single()
+    let { data: device } = await supabase.from("devices").select("*").eq("device_id", deviceId).single()
 
     if (!device) {
-      console.error("[v0] Display error: Device not found:", deviceId)
-      return NextResponse.json({ error: "Device not found" }, { status: 404 })
+      console.log("[v0] Device not found, auto-registering:", deviceId)
+
+      const { data: newDevice, error: insertError } = await supabase
+        .from("devices")
+        .insert({
+          device_id: deviceId,
+          name: `TRMNL Device ${deviceId.slice(-8)}`,
+          firmware_version: "unknown",
+          last_seen_at: new Date().toISOString(),
+        })
+        .select()
+        .single()
+
+      if (insertError) {
+        console.error("[v0] Failed to auto-register device:", insertError)
+        return NextResponse.json({ error: "Failed to register device" }, { status: 500 })
+      }
+
+      device = newDevice
+      console.log("[v0] Device auto-registered successfully")
     }
 
     console.log("[v0] Device found:", device.name)

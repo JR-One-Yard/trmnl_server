@@ -4,7 +4,7 @@ import type { LogRequest } from "@/lib/types"
 
 export async function POST(request: NextRequest) {
   try {
-    const deviceId = request.headers.get("ID")
+    const deviceId = request.headers.get("ID") || request.headers.get("id")
 
     if (!deviceId) {
       return NextResponse.json({ error: "Device ID is required in headers" }, { status: 400 })
@@ -14,10 +14,28 @@ export async function POST(request: NextRequest) {
     const supabase = await getSupabaseServerClient()
 
     // Get device
-    const { data: device } = await supabase.from("devices").select("id").eq("device_id", deviceId).single()
+    let { data: device } = await supabase.from("devices").select("id").eq("device_id", deviceId).single()
 
     if (!device) {
-      return NextResponse.json({ error: "Device not found" }, { status: 404 })
+      console.log("[v0] Device not found in log endpoint, auto-registering:", deviceId)
+
+      const { data: newDevice, error: insertError } = await supabase
+        .from("devices")
+        .insert({
+          device_id: deviceId,
+          name: `TRMNL Device ${deviceId.slice(-8)}`,
+          firmware_version: "unknown",
+          last_seen_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single()
+
+      if (insertError) {
+        console.error("[v0] Failed to auto-register device:", insertError)
+        return NextResponse.json({ error: "Failed to register device" }, { status: 500 })
+      }
+
+      device = newDevice
     }
 
     // Create log entry
