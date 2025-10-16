@@ -1,8 +1,8 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { DeviceList } from "@/components/device-list"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
 import Link from "next/link"
+import { LogoutButton } from "@/components/logout-button"
 
 export default async function DashboardPage() {
   const supabase = await getSupabaseServerClient()
@@ -22,12 +22,12 @@ export default async function DashboardPage() {
               <h1 className="text-3xl font-bold">Dashboard</h1>
               <p className="text-muted-foreground">Manage your TRMNL devices</p>
             </div>
-            <Button asChild>
-              <Link href="/">
-                <Plus className="w-4 h-4 mr-2" />
-                Back to Home
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" asChild>
+                <Link href="/">Back to Home</Link>
+              </Button>
+              <LogoutButton />
+            </div>
           </div>
         </div>
       </div>
