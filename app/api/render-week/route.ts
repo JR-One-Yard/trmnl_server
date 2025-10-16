@@ -72,11 +72,21 @@ export async function GET(req: NextRequest) {
 
     let finalPng
     try {
-      const r = new Resvg(svg, { fitTo: { mode: "width", value: 800 } })
+      const r = new Resvg(svg, {
+        fitTo: { mode: "original" },
+      })
       const png = r.render().asPng()
       console.log("[v0] render-week: SVG converted to PNG, size:", png.length)
 
-      finalPng = await sharp(png).resize(800, 480, { fit: "cover" }).grayscale().png({ compressionLevel: 9 }).toBuffer()
+      finalPng = await sharp(png)
+        .resize(800, 480, {
+          fit: "contain",
+          background: { r: 255, g: 255, b: 255, alpha: 1 },
+        })
+        .grayscale()
+        .normalize() // Enhance contrast for e-ink
+        .png({ compressionLevel: 9 })
+        .toBuffer()
 
       console.log("[v0] render-week: Final PNG processed, size:", finalPng.length)
     } catch (conversionError) {
