@@ -59,11 +59,13 @@ export async function GET(request: NextRequest) {
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${request.headers.get("host")}`
 
+    const secureBaseUrl = baseUrl.replace(/^http:/, "https:")
+
     if (!screen) {
       console.log("[v0] No active screen found, returning default")
       // Return default screen
       const response: DisplayResponse = {
-        image_url: `${baseUrl}/api/render?device_id=${deviceId}&type=default`,
+        image_url: `${secureBaseUrl}/api/render?device_id=${deviceId}&type=default`,
         refresh_rate: 300,
       }
       console.log("[v0] Sending response:", JSON.stringify(response))
@@ -72,7 +74,7 @@ export async function GET(request: NextRequest) {
 
     console.log("[v0] Active screen found:", screen.name, "Type:", screen.type)
 
-    const imageUrl = `${baseUrl}/api/render?device_id=${deviceId}&screen_id=${screen.id}`
+    const imageUrl = `${secureBaseUrl}/api/render?device_id=${deviceId}&screen_id=${screen.id}`
     console.log("[v0] Using render endpoint:", imageUrl)
 
     // Return screen configuration
