@@ -1,6 +1,4 @@
 import type { NextRequest } from "next/server"
-import { Resvg } from "@resvg/resvg-js"
-import sharp from "sharp"
 import crypto from "crypto"
 import { getWeekBoundsSydney } from "@/lib/calendar/time"
 import { getWeekEvents } from "@/lib/calendar/fetch"
@@ -13,6 +11,9 @@ export async function GET(req: NextRequest) {
   console.log("[v0] render-week: Starting PNG generation")
 
   try {
+    const { Resvg } = await import("@resvg/resvg-js")
+    const sharp = (await import("sharp")).default
+
     // 1) Data
     const now = new Date()
     const { startOfWeek, endOfWeek } = getWeekBoundsSydney(now)
