@@ -1,4 +1,4 @@
-import type { CalendarEvent } from "./types"
+import type { CalEvent as CalendarEvent } from "./types"
 
 function escapeXml(text: string): string {
   return text
@@ -62,7 +62,7 @@ export function renderWeekSvg({
 
       svg += `<rect x="${x + 5}" y="${eventY}" width="${dayWidth - 10}" height="${eventHeight}" fill="#f0f0f0" stroke="black" strokeWidth="1" rx="3"/>`
 
-      const summary = event.summary || "Untitled Event"
+      const summary = event.title || "Untitled Event"
       const title = summary.length > 15 ? summary.substring(0, 12) + "..." : summary
       svg += `<text x="${Math.floor(x + dayWidth / 2)}" y="${eventY + 15}" fontFamily="Arial, sans-serif" fontSize="10" textAnchor="middle" fill="black">${escapeXml(title)}</text>`
 
