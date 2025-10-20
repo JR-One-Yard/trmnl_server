@@ -72,3 +72,15 @@ export function hashPassword(password: string): string {
 export function verifyPassword(password: string, hashedPassword: string): boolean {
   return hashPassword(password) === hashedPassword
 }
+
+/**
+ * Generate mock MAC address from API key for fallback authentication
+ * @param apiKey - API key to generate MAC from
+ * @returns Mock MAC address in standard format
+ */
+export function generateMockMacAddress(apiKey: string): string {
+  const hash = crypto.createHash("sha256").update(apiKey).digest("hex")
+  // Take first 12 characters and format as MAC address
+  const macParts = hash.substring(0, 12).toUpperCase().match(/.{2}/g)
+  return macParts ? macParts.join(":") : "00:00:00:00:00:00"
+}
