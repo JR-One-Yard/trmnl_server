@@ -1,12 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/server"
+import { generateApiKey, generateFriendlyId, normalizeMacAddress, isValidMacAddress } from "@/lib/security"
+import { logInfo, logError, logWarn } from "@/lib/logger"
 import type { SetupRequest } from "@/lib/types"
 
 export async function GET(request: NextRequest) {
-  console.log("[v0] Setup GET request received")
-  console.log("[v0] Headers:", Object.fromEntries(request.headers.entries()))
+  await logInfo("Setup health check received")
 
-  // Return simple success response for device health check
   return NextResponse.json({
     status: "ok",
     message: "TRMNL BYOS server is ready",
@@ -15,28 +15,36 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[v0] Setup POST request received")
-    console.log("[v0] Headers:", Object.fromEntries(request.headers.entries()))
+    await logInfo("Setup POST request received")
 
-    const deviceId = request.headers.get("ID") || request.headers.get("id")
+    const macAddress = request.headers.get("ID") || request.headers.get("id")
 
-    if (!deviceId) {
-      console.error("[v0] Setup error: Missing device ID in headers")
-      return NextResponse.json({ error: "Device ID is required in headers" }, { status: 400 })
+    if (!macAddress) {
+      await logWarn("Setup request missing MAC address in headers")
+      return NextResponse.json({ error: "MAC address is required in ID header" }, { status: 400 })
     }
 
+    if (!isValidMacAddress(macAddress)) {
+      await logWarn("Setup request with invalid MAC address format", { macAddress })
+      return NextResponse.json(
+        { error: "Invalid MAC address format. Expected format: XX:XX:XX:XX:XX:XX" },
+        { status: 400 },
+      )
+    }
+
+    const normalizedMac = normalizeMacAddress(macAddress)
+
     const body: SetupRequest = await request.json().catch(() => ({}))
-    console.log("[v0] Setup request body:", body)
 
-    const supabase = await getSupabaseServerClient()
+    const supabase = await createClient()
 
-    const deviceName = body.device_name || `Device ${deviceId.slice(0, 8)}`
-
-    // Check if device exists
-    const { data: existingDevice } = await supabase.from("devices").select("*").eq("device_id", deviceId).single()
+    const { data: existingDevice } = await supabase
+      .from("devices")
+      .select("*")
+      .eq("mac_address", normalizedMac)
+      .single()
 
     if (existingDevice) {
-      // Update existing device
       const { data, error } = await supabase
         .from("devices")
         .update({
@@ -44,46 +52,65 @@ export async function POST(request: NextRequest) {
           last_seen_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .eq("device_id", deviceId)
+        .eq("mac_address", normalizedMac)
         .select()
         .single()
 
       if (error) {
-        console.error("[v0] Database error updating device:", error)
+        await logError("Database error updating device", { error: error.message, macAddress: normalizedMac })
         throw error
       }
 
-      console.log("[v0] Device updated:", data)
+      await logInfo("Device updated successfully", {
+        friendlyId: data.friendly_id,
+        macAddress: normalizedMac,
+      })
+
       return NextResponse.json({
         status: "updated",
         device: data,
       })
     } else {
-      // Create new device
+      const apiKey = generateApiKey(normalizedMac)
+      const friendlyId = generateFriendlyId(normalizedMac)
+      const deviceName = body.device_name || `TRMNL Device ${friendlyId.slice(-6)}`
+
       const { data, error } = await supabase
         .from("devices")
         .insert({
-          device_id: deviceId,
+          mac_address: normalizedMac,
+          friendly_id: friendlyId,
+          api_key: apiKey,
           name: deviceName,
-          firmware_version: body.firmware_version,
+          firmware_version: body.firmware_version || "unknown",
+          screen: body.screen || "epd_2_9",
+          timezone: body.timezone || "UTC",
           last_seen_at: new Date().toISOString(),
         })
         .select()
         .single()
 
       if (error) {
-        console.error("[v0] Database error creating device:", error)
+        await logError("Database error creating device", {
+          error: error.message,
+          macAddress: normalizedMac,
+        })
         throw error
       }
 
-      console.log("[v0] Device created:", data)
+      await logInfo("Device created successfully", {
+        friendlyId: data.friendly_id,
+        macAddress: normalizedMac,
+      })
+
       return NextResponse.json({
         status: "created",
         device: data,
+        api_key: apiKey, // Return API key only on creation
       })
     }
   } catch (error) {
-    console.error("[v0] Setup error:", error)
+    await logError("Setup error", { error: String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
