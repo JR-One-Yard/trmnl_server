@@ -1,20 +1,20 @@
 "use client"
 
-import type { Device } from "@/lib/types"
+import type { Device } from "@/lib/types/device"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"
-import { Badge } from "./ui/badge"
 import { Monitor, Settings, Eye } from "lucide-react"
 import Link from "next/link"
-import { formatDistanceToNow } from "date-fns"
+import { formatDate } from "@/lib/helpers"
+import { DeviceStatusBadge } from "./device-status-badge"
+import { BatteryIndicator } from "./battery-indicator"
+import { WifiIndicator } from "./wifi-indicator"
 
 interface DeviceCardProps {
   device: Device
 }
 
 export function DeviceCard({ device }: DeviceCardProps) {
-  const isOnline = device.last_seen_at ? new Date(device.last_seen_at).getTime() > Date.now() - 10 * 60 * 1000 : false
-
   return (
     <Card>
       <CardHeader>
@@ -23,11 +23,16 @@ export function DeviceCard({ device }: DeviceCardProps) {
             <Monitor className="w-5 h-5 text-muted-foreground" />
             <CardTitle className="text-lg">{device.name || "Unnamed Device"}</CardTitle>
           </div>
-          <Badge variant={isOnline ? "default" : "secondary"}>{isOnline ? "Online" : "Offline"}</Badge>
+          <DeviceStatusBadge lastSeenAt={device.last_seen_at} />
         </div>
-        <CardDescription className="font-mono text-xs">{device.device_id}</CardDescription>
+        <CardDescription className="font-mono text-xs">{device.friendly_id}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="flex items-center gap-4 text-sm">
+          <BatteryIndicator voltage={device.battery_voltage} showLabel />
+          <WifiIndicator rssi={device.rssi} showLabel />
+        </div>
+
         <div className="space-y-2 text-sm">
           {device.firmware_version && (
             <div className="flex justify-between">
@@ -38,9 +43,13 @@ export function DeviceCard({ device }: DeviceCardProps) {
           {device.last_seen_at && (
             <div className="flex justify-between">
               <span className="text-muted-foreground">Last Seen:</span>
-              <span className="font-medium">
-                {formatDistanceToNow(new Date(device.last_seen_at), { addSuffix: true })}
-              </span>
+              <span className="font-medium">{formatDate(device.last_seen_at, device.timezone)}</span>
+            </div>
+          )}
+          {device.timezone && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Timezone:</span>
+              <span className="font-medium">{device.timezone}</span>
             </div>
           )}
         </div>
