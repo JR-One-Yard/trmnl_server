@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "npm install",
+  "installCommand": "rm -f pnpm-lock.yaml && npm install",
   "buildCommand": "npm run build",
   "crons": [
     {
