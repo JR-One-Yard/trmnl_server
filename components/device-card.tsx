@@ -23,7 +23,7 @@ export function DeviceCard({ device }: DeviceCardProps) {
             <Monitor className="w-5 h-5 text-muted-foreground" />
             <CardTitle className="text-lg">{device.name || "Unnamed Device"}</CardTitle>
           </div>
-          <DeviceStatusBadge lastSeenAt={device.last_seen_at} />
+          <DeviceStatusBadge lastSeenAt={device.last_update_time || device.last_seen_at} />
         </div>
         <CardDescription className="font-mono text-xs">{device.friendly_id}</CardDescription>
       </CardHeader>
@@ -40,10 +40,12 @@ export function DeviceCard({ device }: DeviceCardProps) {
               <span className="font-medium">{device.firmware_version}</span>
             </div>
           )}
-          {device.last_seen_at && (
+          {(device.last_update_time || device.last_seen_at) && (
             <div className="flex justify-between">
               <span className="text-muted-foreground">Last Seen:</span>
-              <span className="font-medium">{formatDate(device.last_seen_at, device.timezone)}</span>
+              <span className="font-medium">
+                {formatDate(device.last_update_time || device.last_seen_at, device.timezone)}
+              </span>
             </div>
           )}
           {device.timezone && (

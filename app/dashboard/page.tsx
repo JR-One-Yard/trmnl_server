@@ -6,6 +6,7 @@ import Link from "next/link"
 import { LogoutButton } from "@/components/logout-button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Monitor, FileText, Activity, TrendingUp } from "lucide-react"
+import { DashboardRefresh } from "@/components/dashboard-refresh"
 
 export default async function DashboardPage() {
   const supabase = await getSupabaseServerClient()
@@ -26,6 +27,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <DashboardRefresh />
+
       <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">

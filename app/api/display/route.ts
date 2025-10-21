@@ -110,8 +110,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    const now = new Date().toISOString()
+    const refreshRate = calculateRefreshRate(device.timezone, Number.parseInt(device.refresh_schedule) || 300)
+
     const updateData: any = {
-      last_seen_at: new Date().toISOString(),
+      last_seen_at: now,
+      last_update_time: now,
+      updated_at: now,
+      next_expected_update: new Date(Date.now() + refreshRate * 1000).toISOString(),
     }
 
     if (deviceStatus.battery_voltage !== undefined) {
@@ -129,15 +135,32 @@ export async function GET(request: NextRequest) {
     await logInfo("Device status updated", {
       friendlyId: device.friendly_id,
       authMethod,
+      last_update_time: now,
+      refreshRate,
       ...deviceStatus,
     })
-
-    const refreshRate = calculateRefreshRate(device.timezone, Number.parseInt(device.refresh_schedule) || 300)
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${request.headers.get("host")}`
     const secureBaseUrl = baseUrl.replace(/^http:/, "https:")
 
     const imageUrl = generateImageUrl(`${secureBaseUrl}/api/render`, device.id)
+
+    try {
+      const imageTest = await fetch(imageUrl, { method: "HEAD" })
+      await logInfo("Image URL accessibility test", {
+        friendlyId: device.friendly_id,
+        url: imageUrl,
+        status: imageTest.status,
+        contentType: imageTest.headers.get("content-type"),
+        contentLength: imageTest.headers.get("content-length"),
+      })
+    } catch (error) {
+      await logError("Image URL not accessible", {
+        friendlyId: device.friendly_id,
+        url: imageUrl,
+        error: String(error),
+      })
+    }
 
     await logInfo("Sending image URL to device", {
       friendlyId: device.friendly_id,
@@ -153,6 +176,11 @@ export async function GET(request: NextRequest) {
       reset_firmware: false,
       update_firmware: false,
     }
+
+    await logInfo("Display response prepared", {
+      friendlyId: device.friendly_id,
+      response,
+    })
 
     return NextResponse.json(response, {
       status: 200,

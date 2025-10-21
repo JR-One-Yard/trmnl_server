@@ -112,8 +112,12 @@ export async function POST(request: NextRequest) {
 
     const body: LogRequest = await request.json().catch(() => ({}))
 
+    const now = new Date().toISOString()
+
     const updateData: any = {
-      last_seen_at: new Date().toISOString(),
+      last_seen_at: now,
+      last_update_time: now,
+      updated_at: now,
     }
 
     if (deviceStatus.battery_voltage !== undefined) {
