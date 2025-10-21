@@ -3,6 +3,7 @@ import { convertToBMP } from "@/lib/calendar/bmp-converter"
 import { logInfo, logError } from "@/lib/logger"
 import getData from "@/app/recipes/screens/year-progress/getData"
 
+export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
@@ -66,7 +67,7 @@ export async function GET() {
       const y = startY + row * maxDotHeight + maxDotHeight / 2
       const filled = i < data.dayIndex
 
-      dotsHtml += `<circle cx="${x}" cy="${y}" r="${dotSize / 2}" fill="${filled ? "black" : "white"}" stroke="black" stroke-width="2"/>`
+      dotsHtml += `<circle cx="${x}" cy="${y}" r="${dotSize / 2}" fill="${filled ? "black" : "white"}" stroke="black" strokeWidth="2"/>`
     }
 
     const svg = `<?xml version="1.0" encoding="UTF-8"?>
@@ -77,17 +78,17 @@ export async function GET() {
   ${dotsHtml}
   
   <!-- Footer -->
-  <line x1="40" y1="420" x2="760" y2="420" stroke="black" stroke-width="2"/>
+  <line x1="40" y1="420" x2="760" y2="420" stroke="black" strokeWidth="2"/>
   
-  <text x="60" y="450" font-family="monospace" font-size="20" fill="black">
+  <text x="60" y="450" fontFamily="monospace" fontSize="20" fill="black">
     Day ${data.dayIndex} of ${data.totalDays}
   </text>
   
-  <text x="400" y="450" text-anchor="middle" font-family="monospace" font-size="20" fill="black">
+  <text x="400" y="450" textAnchor="middle" fontFamily="monospace" fontSize="20" fill="black">
     ${data.currentDate}
   </text>
   
-  <text x="740" y="450" text-anchor="end" font-family="monospace" font-size="20" fill="black">
+  <text x="740" y="450" textAnchor="end" fontFamily="monospace" fontSize="20" fill="black">
     ${(data.percentage * 100).toFixed(1)}%
   </text>
 </svg>`
