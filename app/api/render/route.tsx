@@ -1,254 +1,99 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getSupabaseServerClient } from "@/lib/supabase/server"
-import { renderWeekSvg } from "@/lib/calendar/renderWeekSvg"
+import { createClient } from "@/lib/supabase/server"
+import { logInfo, logError } from "@/lib/logger"
 import { convertToBMP } from "@/lib/calendar/bmp-converter"
-import { Resvg } from "@resvg/resvg-js"
 
 export async function GET(request: NextRequest) {
-  const requestId = Math.random().toString(36).substring(7)
-  console.log(`[v0] [${requestId}] Render request received`)
-  console.log(`[v0] [${requestId}] URL:`, request.url)
-  console.log(`[v0] [${requestId}] Headers:`, Object.fromEntries(request.headers.entries()))
-
   try {
-    const searchParams = request.nextUrl.searchParams
-    const deviceId = searchParams.get("device_id")
-    const screenId = searchParams.get("screen_id")
-    const type = searchParams.get("type")
+    const url = new URL(request.url)
+    const deviceId = url.searchParams.get("device_id") || url.searchParams.get("device")
+    const testMode = !deviceId
 
-    console.log(`[v0] [${requestId}] Params - deviceId: ${deviceId}, screenId: ${screenId}, type: ${type}`)
+    await logInfo("Render request received", { deviceId, testMode })
 
-    if (!deviceId) {
-      console.log(`[v0] [${requestId}] ERROR: Device ID missing`)
-      return NextResponse.json({ error: "Device ID is required" }, { status: 400 })
+    const content = {
+      time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+      date: new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
+      message: "TRMNL Test Display",
+      device: testMode ? "Test Mode" : "Loading...",
     }
 
-    const supabase = await getSupabaseServerClient()
+    if (deviceId && !testMode) {
+      const supabase = await createClient()
+      const { data: device } = await supabase.from("devices").select("*").eq("id", deviceId).single()
 
-    // Get device
-    const { data: device } = await supabase.from("devices").select("*").eq("device_id", deviceId).single()
-
-    if (!device) {
-      console.log(`[v0] [${requestId}] ERROR: Device not found`)
-      return NextResponse.json({ error: "Device not found" }, { status: 404 })
-    }
-
-    console.log(`[v0] [${requestId}] Device found: ${device.name}`)
-
-    let screenData = null
-
-    if (screenId) {
-      const { data } = await supabase.from("screens").select("*").eq("id", screenId).single()
-      screenData = data
-      console.log(`[v0] [${requestId}] Screen found: ${screenData?.name}, type: ${screenData?.type}`)
-    }
-
-    if (screenData?.type === "calendar-week") {
-      console.log(`[v0] [${requestId}] Processing calendar-week screen`)
-
-      const userAgent = request.headers.get("user-agent") || ""
-      const isBrowser = userAgent.includes("Mozilla") || userAgent.includes("Chrome")
-      console.log(`[v0] [${requestId}] User-Agent: ${userAgent}, isBrowser: ${isBrowser}`)
-
-      const now = new Date()
-      const startOfWeek = new Date(now)
-      startOfWeek.setDate(now.getDate() - now.getDay())
-      startOfWeek.setHours(0, 0, 0, 0)
-
-      const endOfWeek = new Date(startOfWeek)
-      endOfWeek.setDate(startOfWeek.getDate() + 6)
-      endOfWeek.setHours(23, 59, 59, 999)
-
-      // Mock events for testing
-      const events = [
-        {
-          summary: "Team Meeting",
-          start: new Date(startOfWeek.getTime() + 2 * 24 * 60 * 60 * 1000 + 10 * 60 * 60 * 1000).toISOString(),
-          end: new Date(startOfWeek.getTime() + 2 * 24 * 60 * 60 * 1000 + 11 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          summary: "Lunch with Client",
-          start: new Date(startOfWeek.getTime() + 3 * 24 * 60 * 60 * 1000 + 12 * 60 * 60 * 1000).toISOString(),
-          end: new Date(startOfWeek.getTime() + 3 * 24 * 60 * 60 * 1000 + 13 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          summary: "Project Review",
-          start: new Date(startOfWeek.getTime() + 4 * 24 * 60 * 60 * 1000 + 14 * 60 * 60 * 1000).toISOString(),
-          end: new Date(startOfWeek.getTime() + 4 * 24 * 60 * 60 * 1000 + 15 * 60 * 60 * 1000).toISOString(),
-        },
-      ]
-
-      console.log(`[v0] [${requestId}] Generating SVG with ${events.length} events`)
-      const svg = renderWeekSvg({ events, startOfWeek, endOfWeek })
-      console.log(`[v0] [${requestId}] SVG generated, length: ${svg.length}`)
-
-      // Return SVG for browsers, BMP for TRMNL devices
-      if (isBrowser) {
-        console.log(`[v0] [${requestId}] Returning SVG for browser`)
-        return new NextResponse(svg, {
-          headers: {
-            "Content-Type": "image/svg+xml",
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-          },
-        })
+      if (device) {
+        content.device = device.friendly_id || device.name || "Unknown Device"
+        content.message = `Hello ${device.name || "Device"}!`
       }
-
-      // Convert to BMP for TRMNL device
-      console.log(`[v0] [${requestId}] Converting to BMP for TRMNL device`)
-      const resvg = new Resvg(svg, {
-        fitTo: { mode: "width", value: 800 },
-        font: { loadSystemFonts: true },
-      })
-      console.log(`[v0] [${requestId}] Resvg initialized`)
-
-      const pngData = resvg.render()
-      console.log(`[v0] [${requestId}] PNG rendered`)
-
-      const png = pngData.asPng()
-      console.log(`[v0] [${requestId}] PNG buffer created, size: ${png.length}`)
-
-      const bmp = convertToBMP(png)
-      console.log(`[v0] [${requestId}] BMP converted, size: ${bmp.length}`)
-
-      return new NextResponse(bmp, {
-        headers: {
-          "Content-Type": "image/bmp",
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-        },
-      })
     }
 
-    console.log(`[v0] [${requestId}] Generating standard screen SVG`)
-    // Generate SVG image based on screen type
-    const svg = generateScreenSVG(device, screenData, type)
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="480" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="480" fill="white"/>
+  
+  <!-- Header -->
+  <text x="400" y="80" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="black">
+    ${content.message}
+  </text>
+  
+  <!-- Time -->
+  <text x="400" y="200" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="black">
+    ${content.time}
+  </text>
+  
+  <!-- Date -->
+  <text x="400" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" fill="black">
+    ${content.date}
+  </text>
+  
+  <!-- Device Info -->
+  <text x="400" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#666">
+    Device: ${content.device}
+  </text>
+  
+  <!-- Footer -->
+  <text x="400" y="450" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#999">
+    TRMNL BYOS • ${new Date().toISOString().split("T")[0]}
+  </text>
+</svg>`
 
-    return new NextResponse(svg, {
+    const sharp = (await import("sharp")).default
+    const pngBuffer = await sharp(Buffer.from(svg)).png().toBuffer()
+    const bmpBuffer = await convertToBMP(pngBuffer)
+
+    await logInfo("Image generated successfully", {
+      deviceId,
+      testMode,
+      bmpSize: bmpBuffer.length,
+    })
+
+    return new Response(bmpBuffer, {
       headers: {
-        "Content-Type": "image/svg+xml",
+        "Content-Type": "image/bmp",
+        "Content-Length": bmpBuffer.length.toString(),
         "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, ID, Access-Token",
       },
     })
   } catch (error) {
-    console.error(`[v0] Render error:`, error)
-    return NextResponse.json(
-      { error: "Internal server error", details: error instanceof Error ? error.message : String(error) },
-      { status: 500 },
-    )
+    await logError("Render error", { error: String(error) })
+    return NextResponse.json({ error: "Image generation failed", details: String(error) }, { status: 500 })
   }
 }
 
-function generateScreenSVG(device: any, screen: any, type: string | null): string {
-  const width = 800
-  const height = 480
-
-  if (!screen || type === "default") {
-    return `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="${width}" height="${height}" fill="#000000"/>
-  <text x="${width / 2}" y="${height / 2 - 40}" fontFamily="Arial, sans-serif" fontSize="48" fill="#FFFFFF" textAnchor="middle" fontWeight="bold">
-    TRMNL
-  </text>
-  <text x="${width / 2}" y="${height / 2 + 20}" fontFamily="Arial, sans-serif" fontSize="24" fill="#CCCCCC" textAnchor="middle">
-    Device: ${device.name || device.device_id}
-  </text>
-  <text x="${width / 2}" y="${height / 2 + 60}" fontFamily="Arial, sans-serif" fontSize="18" fill="#999999" textAnchor="middle">
-    Configure your screen in the dashboard
-  </text>
-</svg>`
-  }
-
-  // Generate screen based on type
-  switch (screen.type) {
-    case "clock":
-      return generateClockScreen(width, height, screen.config)
-    case "weather":
-      return generateWeatherScreen(width, height, screen.config)
-    case "quote":
-      return generateQuoteScreen(width, height, screen.config)
-    case "custom":
-      return generateCustomScreen(width, height, screen.config)
-    default:
-      return generateDefaultScreen(width, height, screen)
-  }
-}
-
-function generateClockScreen(width: number, height: number, config: any): string {
-  const now = new Date()
-  const time = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
-  const date = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="${width}" height="${height}" fill="#FFFFFF"/>
-  <text x="${width / 2}" y="${height / 2 - 20}" fontFamily="Arial, sans-serif" fontSize="96" fill="#000000" textAnchor="middle" fontWeight="bold">
-    ${time}
-  </text>
-  <text x="${width / 2}" y="${height / 2 + 60}" fontFamily="Arial, sans-serif" fontSize="28" fill="#666666" textAnchor="middle">
-    ${date}
-  </text>
-</svg>`
-}
-
-function generateWeatherScreen(width: number, height: number, config: any): string {
-  const temp = config.temperature || "72°F"
-  const condition = config.condition || "Sunny"
-  const location = config.location || "Your Location"
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="${width}" height="${height}" fill="#87CEEB"/>
-  <text x="${width / 2}" y="80" fontFamily="Arial, sans-serif" fontSize="32" fill="#FFFFFF" textAnchor="middle" fontWeight="bold">
-    ${location}
-  </text>
-  <text x="${width / 2}" y="${height / 2}" fontFamily="Arial, sans-serif" fontSize="120" fill="#FFFFFF" textAnchor="middle" fontWeight="bold">
-    ${temp}
-  </text>
-  <text x="${width / 2}" y="${height / 2 + 80}" fontFamily="Arial, sans-serif" fontSize="36" fill="#FFFFFF" textAnchor="middle">
-    ${condition}
-  </text>
-</svg>`
-}
-
-function generateQuoteScreen(width: number, height: number, config: any): string {
-  const quote = config.quote || "The only way to do great work is to love what you do."
-  const author = config.author || "Steve Jobs"
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="${width}" height="${height}" fill="#1a1a1a"/>
-  <text x="${width / 2}" y="${height / 2 - 40}" fontFamily="Georgia, serif" fontSize="32" fill="#FFFFFF" textAnchor="middle" fontStyle="italic">
-    "${quote}"
-  </text>
-  <text x="${width / 2}" y="${height / 2 + 40}" fontFamily="Arial, sans-serif" fontSize="24" fill="#CCCCCC" textAnchor="middle">
-    — ${author}
-  </text>
-</svg>`
-}
-
-function generateCustomScreen(width: number, height: number, config: any): string {
-  const title = config.title || "Custom Screen"
-  const content = config.content || "Configure your custom content"
-  const bgColor = config.backgroundColor || "#FFFFFF"
-  const textColor = config.textColor || "#000000"
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="${width}" height="${height}" fill="${bgColor}"/>
-  <text x="${width / 2}" y="${height / 2 - 40}" fontFamily="Arial, sans-serif" fontSize="48" fill="${textColor}" textAnchor="middle" fontWeight="bold">
-    ${title}
-  </text>
-  <text x="${width / 2}" y="${height / 2 + 20}" fontFamily="Arial, sans-serif" fontSize="24" fill="${textColor}" textAnchor="middle">
-    ${content}
-  </text>
-</svg>`
-}
-
-function generateDefaultScreen(width: number, height: number, screen: any): string {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="${width}" height="${height}" fill="#F5F5F5"/>
-  <text x="${width / 2}" y="${height / 2}" fontFamily="Arial, sans-serif" fontSize="36" fill="#333333" textAnchor="middle">
-    ${screen.name}
-  </text>
-</svg>`
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, ID, Access-Token",
+      "Access-Control-Max-Age": "86400",
+    },
+  })
 }

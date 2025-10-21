@@ -139,16 +139,31 @@ export async function GET(request: NextRequest) {
 
     const imageUrl = generateImageUrl(`${secureBaseUrl}/api/render`, device.id)
 
+    await logInfo("Sending image URL to device", {
+      friendlyId: device.friendly_id,
+      imageUrl,
+      refreshRate,
+    })
+
     const response: DisplayResponse = {
       status: "ok",
       image_url: imageUrl,
-      filename: `${device.friendly_id}.png`,
+      filename: `${device.friendly_id}.bmp`,
       refresh_rate: refreshRate,
       reset_firmware: false,
       update_firmware: false,
     }
 
-    return NextResponse.json(response, { status: 200 })
+    return NextResponse.json(response, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, ID, Access-Token, Battery-Voltage, Firmware-Version, RSSI",
+        "Cache-Control": "no-cache",
+      },
+    })
   } catch (error) {
     await logError("Display error", { error: String(error) })
     return NextResponse.json(
@@ -159,4 +174,16 @@ export async function GET(request: NextRequest) {
       { status: 200 },
     )
   }
+}
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, ID, Access-Token, Battery-Voltage, Firmware-Version, RSSI",
+      "Access-Control-Max-Age": "86400",
+    },
+  })
 }

@@ -42,9 +42,35 @@ Required environment variables are automatically configured when using Supabase 
 
 - `POST /api/setup` - Register a new device
 - `GET /api/display` - Get display content for device
+- `GET /api/render` - Generate BMP image for device (supports test mode)
+- `GET /api/test-image` - Generate test pattern for debugging
 - `POST /api/log` - Log device events
 - `GET /api/diagnostics` - System health and diagnostics
 - `GET /api/health` - API health check
+
+## Testing & Debugging
+
+### Test Image Rendering
+
+Visit these endpoints to test image generation:
+
+\`\`\`bash
+# Test render endpoint (no device required)
+https://your-app.vercel.app/api/render
+
+# Test simple stripe pattern
+https://your-app.vercel.app/api/test-image
+
+# Test with specific device
+https://your-app.vercel.app/api/render?device_id=YOUR_DEVICE_ID
+\`\`\`
+
+### TRMNL Device Setup
+
+1. Configure your TRMNL device to point to: `https://your-app.vercel.app`
+2. The device will automatically register on first connection
+3. View device status and logs in the dashboard
+4. Images are automatically generated in 800x480 1-bit BMP format
 
 ## Development
 
