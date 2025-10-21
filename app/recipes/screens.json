@@ -1,0 +1,25 @@
+{
+  "year-progress": {
+    "title": "Year Progress",
+    "published": true,
+    "createdAt": "2025-10-21T00:00:00Z",
+    "updatedAt": "2025-10-21T00:00:00Z",
+    "description": "A component that displays year progress as a grid of dots, showing how many days have passed in the current year.",
+    "componentPath": "./screens/year-progress",
+    "hasDataFetch": true,
+    "props": {
+      "dayIndex": 1,
+      "totalDays": 365,
+      "currentDate": "2025-01-01",
+      "percentage": 0.0
+    },
+    "tags": ["bitmap", "progress", "calendar", "time", "dots"],
+    "author": {
+      "name": "Assistant",
+      "github": ""
+    },
+    "renderSettings": {},
+    "version": "0.1.0",
+    "category": "display-components"
+  }
+}
