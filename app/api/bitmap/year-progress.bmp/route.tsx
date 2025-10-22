@@ -80,15 +80,15 @@ export async function GET() {
   <!-- Footer -->
   <line x1="40" y1="420" x2="760" y2="420" stroke="black" strokeWidth="2"/>
   
-  <text x="60" y="450" fontFamily="monospace" fontSize="20" fill="black">
+  <text x="60" y="450" fontFamily="Arial, sans-serif" fontSize="20" fill="black">
     Day ${data.dayIndex} of ${data.totalDays}
   </text>
   
-  <text x="400" y="450" textAnchor="middle" fontFamily="monospace" fontSize="20" fill="black">
+  <text x="400" y="450" textAnchor="middle" fontFamily="Arial, sans-serif" fontSize="20" fill="black">
     ${data.currentDate}
   </text>
   
-  <text x="740" y="450" textAnchor="end" fontFamily="monospace" fontSize="20" fill="black">
+  <text x="740" y="450" textAnchor="end" fontFamily="Arial, sans-serif" fontSize="20" fill="black">
     ${(data.percentage * 100).toFixed(1)}%
   </text>
 </svg>`
