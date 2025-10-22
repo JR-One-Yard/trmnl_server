@@ -1,10 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "rm -rf pnpm-lock.yaml yarn.lock .pnpm-store node_modules/.pnpm && npm cache clean --force && npm install --force --no-fund --no-audit",
-  "crons": [
-    {
-      "path": "/api/bitmap/year-progress.bmp",
-      "schedule": "5 0 * * *"
-    }
-  ]
+  "installCommand": "rm -rf pnpm-lock.yaml yarn.lock .pnpm-store node_modules/.pnpm && npm cache clean --force && npm install --force --no-fund --no-audit"
 }
