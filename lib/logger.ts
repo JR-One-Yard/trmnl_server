@@ -7,7 +7,7 @@ export interface LogMetadata {
 }
 
 /**
- * Log message to system_logs table with fallback to console
+ * Log message to logs table with fallback to console
  * @param level - Log level
  * @param message - Log message
  * @param metadata - Optional metadata object
@@ -40,7 +40,7 @@ export async function logToSystem(
   try {
     const supabase = await createClient()
 
-    const { error } = await supabase.from("system_logs").insert({
+    const { error } = await supabase.from("logs").insert({
       level,
       message,
       source,
@@ -49,7 +49,7 @@ export async function logToSystem(
     })
 
     if (error) {
-      console.error("Failed to write to system_logs table:", error)
+      console.error("Failed to write to logs table:", error)
     }
   } catch (error) {
     console.error("Failed to log to database:", error)
