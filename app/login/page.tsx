@@ -31,23 +31,25 @@ export default function LoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
+        credentials: "same-origin",
       })
 
       console.log("[v0] Login response status:", response.status)
 
-      if (response.ok) {
+      const data = await response.json()
+      console.log("[v0] Login response data:", data)
+
+      if (response.ok && data.success) {
         console.log("[v0] Login successful, redirecting to:", redirect)
-        router.push(redirect)
-        router.refresh()
+        window.location.href = redirect
       } else {
-        const data = await response.json()
         console.log("[v0] Login failed:", data)
         setError(data.error || "Invalid password")
+        setLoading(false)
       }
     } catch (err) {
       console.error("[v0] Login error:", err)
       setError("An error occurred. Please try again.")
-    } finally {
       setLoading(false)
     }
   }
