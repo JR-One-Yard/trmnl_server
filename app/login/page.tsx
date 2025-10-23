@@ -23,21 +23,29 @@ export default function LoginPage() {
     setError("")
     setLoading(true)
 
+    console.log("[v0] Login form submitted")
+
     try {
+      console.log("[v0] Sending login request")
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       })
 
+      console.log("[v0] Login response status:", response.status)
+
       if (response.ok) {
+        console.log("[v0] Login successful, redirecting to:", redirect)
         router.push(redirect)
         router.refresh()
       } else {
         const data = await response.json()
+        console.log("[v0] Login failed:", data)
         setError(data.error || "Invalid password")
       }
     } catch (err) {
+      console.error("[v0] Login error:", err)
       setError("An error occurred. Please try again.")
     } finally {
       setLoading(false)
