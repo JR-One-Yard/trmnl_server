@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { generateSessionToken } from "@/lib/security"
 import { loginSchema } from "@/lib/validation"
 import { logInfo, logWarn, logError } from "@/lib/logger"
 
@@ -31,11 +30,9 @@ export async function POST(request: NextRequest) {
     console.log("[v0] Checking password match")
     if (password === correctPassword) {
       console.log("[v0] Password correct, generating session token")
-      const sessionToken = generateSessionToken()
-
       const response = NextResponse.json({ success: true })
 
-      response.cookies.set("trmnl-auth", sessionToken, {
+      response.cookies.set("trmnl-auth", "authenticated", {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
