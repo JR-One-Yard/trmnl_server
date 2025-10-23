@@ -59,6 +59,41 @@ function renderNumber(num: number, x: number, y: number, digitSize: number): str
   return svg
 }
 
+function renderDotMatrixSymbol(symbol: string, x: number, y: number, size: number): string {
+  const patterns: { [key: string]: number[][] } = {
+    "/": [
+      [0, 0, 0, 1],
+      [0, 0, 1, 0],
+      [0, 1, 0, 0],
+      [1, 0, 0, 0],
+    ],
+    "%": [
+      [1, 1, 0, 0, 1],
+      [1, 1, 0, 1, 0],
+      [0, 0, 1, 0, 0],
+      [0, 1, 0, 1, 1],
+      [1, 0, 0, 1, 1],
+    ],
+  }
+
+  const pattern = patterns[symbol]
+  if (!pattern) return ""
+
+  let svg = ""
+  const dotSize = size / 6
+  const spacing = size / 5
+
+  for (let row = 0; row < pattern.length; row++) {
+    for (let col = 0; col < pattern[row].length; col++) {
+      if (pattern[row][col]) {
+        svg += `<circle cx="${x + col * spacing}" cy="${y + row * spacing}" r="${dotSize}" fill="black"/>`
+      }
+    }
+  }
+
+  return svg
+}
+
 function renderDotText(text: string, x: number, y: number, dotSize: number): string {
   // Simple dot matrix for basic characters
   const chars: { [key: string]: number[][] } = {
@@ -192,16 +227,17 @@ export async function GET() {
     }
 
     const footerY = 410
-    const digitSize = 22 // Larger digits for better readability
+    const digitSize = 22
 
-    // Left: "296 / 365" format - cleaner than "Day 296 of 365"
-    const dayNumberSvg = renderNumber(data.dayIndex, 80, footerY, digitSize)
-    const totalNumberSvg = renderNumber(data.totalDays, 240, footerY, digitSize)
+    // Left: "296 / 365" format
+    const dayNumberSvg = renderNumber(data.dayIndex, 60, footerY, digitSize)
+    const slashSvg = renderDotMatrixSymbol("/", 190, footerY + 10, 20)
+    const totalNumberSvg = renderNumber(data.totalDays, 220, footerY, digitSize)
 
     // Right: "81%" format
     const percentage = Math.round(data.percentage * 100)
     const percentSvg = renderNumber(percentage, 620, footerY, digitSize)
-    const percentSymbolSvg = renderNumber(0, 720, footerY, digitSize) // Placeholder for spacing
+    const percentSymbolSvg = renderDotMatrixSymbol("%", 710, footerY + 5, 25)
 
     const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="800" height="480" xmlns="http://www.w3.org/2000/svg">
@@ -215,12 +251,12 @@ export async function GET() {
   
   <!-- Day Counter: "296 / 365" -->
   ${dayNumberSvg}
-  <text x="200" y="${footerY + digitSize * 1.8}" textAnchor="middle" fontSize="32" fill="black" fontFamily="Arial, sans-serif">/</text>
+  ${slashSvg}
   ${totalNumberSvg}
   
   <!-- Percentage: "81%" -->
   ${percentSvg}
-  <text x="720" y="${footerY + digitSize * 1.8}" textAnchor="start" fontSize="32" fill="black" fontFamily="Arial, sans-serif">%</text>
+  ${percentSymbolSvg}
 </svg>`
 
     // Convert SVG to PNG then to BMP
