@@ -146,7 +146,7 @@ export async function GET() {
     const canvasHeight = 480
     const margin = 40
     const availableWidth = canvasWidth - 2 * margin
-    const availableHeight = canvasHeight - 2 * margin - 60
+    const availableHeight = canvasHeight - 2 * margin - 80 // More space for footer
 
     // Calculate optimal grid dimensions
     const targetAspectRatio = availableWidth / availableHeight
@@ -191,18 +191,17 @@ export async function GET() {
       dotsHtml += `<circle cx="${x}" cy="${y}" r="${dotSize / 2}" fill="${filled ? "black" : "white"}" stroke="black" strokeWidth="2"/>`
     }
 
-    const footerY = 430
-    const digitSize = 18
+    const footerY = 410
+    const digitSize = 22 // Larger digits for better readability
 
-    // Left: "Day XXX of 366" using 7-segment display
-    const dayNumberSvg = renderNumber(data.dayIndex, 60, footerY, digitSize)
-    const ofNumberSvg = renderNumber(data.totalDays, 180, footerY, digitSize)
-    const dayTextSvg = renderDotText("Day", 60, footerY - 25, 3)
-    const ofTextSvg = renderDotText("of", 160, footerY + 5, 3)
+    // Left: "296 / 365" format - cleaner than "Day 296 of 365"
+    const dayNumberSvg = renderNumber(data.dayIndex, 80, footerY, digitSize)
+    const totalNumberSvg = renderNumber(data.totalDays, 240, footerY, digitSize)
 
-    // Right: Percentage using 7-segment display
+    // Right: "81%" format
     const percentage = Math.round(data.percentage * 100)
-    const percentSvg = renderNumber(percentage, 680, footerY, digitSize)
+    const percentSvg = renderNumber(percentage, 620, footerY, digitSize)
+    const percentSymbolSvg = renderNumber(0, 720, footerY, digitSize) // Placeholder for spacing
 
     const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="800" height="480" xmlns="http://www.w3.org/2000/svg">
@@ -211,16 +210,17 @@ export async function GET() {
   <!-- Dots Grid -->
   ${dotsHtml}
   
-  <!-- Footer -->
-  <line x1="40" y1="420" x2="760" y2="420" stroke="black" strokeWidth="2"/>
+  <!-- Footer Separator -->
+  <line x1="40" y1="390" x2="760" y2="390" stroke="black" strokeWidth="2"/>
   
-  <!-- 7-Segment Display Text -->
-  ${dayTextSvg}
+  <!-- Day Counter: "296 / 365" -->
   ${dayNumberSvg}
-  ${ofTextSvg}
-  ${ofNumberSvg}
+  <text x="200" y="${footerY + digitSize * 1.8}" textAnchor="middle" fontSize="32" fill="black" fontFamily="Arial, sans-serif">/</text>
+  ${totalNumberSvg}
+  
+  <!-- Percentage: "81%" -->
   ${percentSvg}
-  <text x="760" y="${footerY + digitSize * 2.5}" textAnchor="end" fontSize="16" fill="black">%</text>
+  <text x="720" y="${footerY + digitSize * 1.8}" textAnchor="start" fontSize="32" fill="black" fontFamily="Arial, sans-serif">%</text>
 </svg>`
 
     // Convert SVG to PNG then to BMP
